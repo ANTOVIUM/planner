@@ -1,5 +1,6 @@
 import { PlannerStorage, STORAGE_KEY, BACKUP_KEY, SCHEMA_VERSION, makeId, localDay, validDay, shiftMonth, parseState, sortTasks, isOverdue, monthStats, quoteIndex } from './core.js';
 import { QUOTES } from './quotes.js';
+import { initializeOffline } from './offline.js';
 
 const $ = id => document.getElementById(id);
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -95,7 +96,7 @@ function renderStorage() {
   $('storageBanner').hidden = !message;
   $('downloadRecovery').hidden = !storage.recoveryRaw;
   $('exportPrevious').hidden = !storage.recoveryRaw;
-  $('storageLabel').textContent = storage.locked || lastSaveError ? 'Проверь сохранение' : 'В этом браузере';
+  $('storageLabel').textContent = storage.locked || lastSaveError ? 'Проверь сохранение' : 'Данные в этом браузере';
 }
 
 function update(mutator, successMessage) {
@@ -119,7 +120,7 @@ function update(mutator, successMessage) {
 function applyTheme() {
   const dark = state.settings.theme === 'dark' || (state.settings.theme === 'system' && systemTheme.matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name="theme-color"]').content = dark ? '#191d1a' : '#f6f5f0';
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#191c1a' : '#fafaf8';
   const button = $('themeToggle');
   button.setAttribute('aria-label', dark ? 'Включить светлую тему' : 'Включить темную тему');
   button.querySelector('use').setAttribute('href', dark ? '#i-sun' : '#i-moon');
@@ -139,6 +140,9 @@ function renderDaily() {
 
 function renderCalendar() {
   $('calendarHeading').textContent = `${months[selected.month - 1]} ${selected.year}`;
+  const current = selected.year === now.getFullYear() && selected.month === now.getMonth() + 1;
+  document.querySelector('.calendar-today-label').hidden = !current;
+  document.querySelector('.calendar-today-label').textContent = `Сегодня ${now.getDate()}`;
   const first = dayDate(`${monthValue()}-01`);
   const blankCount = (first.getDay() + 6) % 7;
   const dueDates = new Set(state.tasks.filter(task => task.status === 'active' && task.deadline?.startsWith(monthValue())).map(task => task.deadline));
@@ -154,6 +158,29 @@ function renderCalendar() {
     fragment.append(cell);
   }
   $('calendarDays').replaceChildren(fragment);
+  renderMonthShortcuts();
+}
+
+function renderMonthShortcuts() {
+  const fragment = document.createDocumentFragment();
+  const shown = new Set();
+  for (const offset of [-2, -1, 0, 1, 2]) {
+    const month = shiftMonth(selected.year, selected.month, offset);
+    const key = monthValue(month);
+    if (shown.has(key)) continue;
+    shown.add(key);
+    const button = element('button', 'month-shortcut');
+    button.type = 'button';
+    button.append(element('span', '', months[month.month - 1]));
+    const isCurrent = month.year === now.getFullYear() && month.month === now.getMonth() + 1;
+    const count = state.tasks.filter(task => task.year === month.year && task.month === month.month).length;
+    button.append(element('span', '', month.year !== now.getFullYear() ? month.year : isCurrent ? 'сейчас' : count || ''));
+    button.setAttribute('aria-pressed', String(month.year === selected.year && month.month === selected.month));
+    button.setAttribute('aria-label', `Перейти к плану: ${months[month.month - 1]} ${month.year}`);
+    button.addEventListener('click', () => { selected = month; showView('plan'); renderTasks(); renderCalendar(); });
+    fragment.append(button);
+  }
+  $('monthShortcuts').replaceChildren(fragment);
 }
 
 function renderTasks() {
@@ -172,17 +199,32 @@ function renderTasks() {
   $('progressAccessible').setAttribute('aria-valuenow', stats.percent);
   $('navTaskCount').textContent = stats.active;
   const overdueCount = monthTasks.filter(task => isOverdue(task, localDay(now))).length;
-  $('taskSummary').textContent = stats.total === 0 ? 'Свободное место для твоих планов' : stats.active === 0 ? 'Все задачи месяца выполнены' : `${plural(stats.active)} в работе${overdueCount ? ` · ${overdueCount} без завершения в срок` : ''}`;
+  $('taskSummary').textContent = stats.total === 0 ? 'Начни с одного понятного действия' : stats.active === 0 ? 'Все задачи месяца выполнены' : `${plural(stats.active)} в работе${overdueCount ? ` · ${overdueCount} со сроком в прошлом` : ''}`;
+  document.querySelectorAll('[data-filter-count]').forEach(counter => { counter.textContent = counter.dataset.filterCount === 'all' ? stats.total : counter.dataset.filterCount === 'active' ? stats.active : stats.done; });
   document.querySelectorAll('[data-filter]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === filter)));
   const tasks = sortTasks(monthTasks.filter(task => (filter === 'all' || (filter === 'active' && task.status === 'active') || (filter === 'done' && task.status === 'done') || (filter === 'high' && task.priority === 'high')) && (!taskQuery || `${task.title}\n${task.description}`.toLocaleLowerCase('ru').includes(taskQuery))), localDay(now));
   const fragment = document.createDocumentFragment();
-  for (const task of tasks) fragment.append(taskRow(task));
+  const groupFor = task => task.status === 'done' ? 'done' : isOverdue(task, localDay(now)) ? 'overdue' : task.priority === 'high' ? 'high' : 'active';
+  const groupNames = { overdue: 'Срок прошел', high: 'Важное', active: 'В работе', done: 'Завершено' };
+  const counts = tasks.reduce((groups, task) => { const key = groupFor(task); groups[key] = (groups[key] || 0) + 1; return groups; }, {});
+  let previousGroup;
+  for (const task of tasks) {
+    const group = groupFor(task);
+    if (previousGroup !== group) {
+      const heading = element('li', `task-group group-${group}`);
+      heading.setAttribute('role', 'presentation');
+      heading.append(element('h3', '', groupNames[group]), element('span', '', counts[group]));
+      fragment.append(heading);
+      previousGroup = group;
+    }
+    fragment.append(taskRow(task));
+  }
   $('taskList').replaceChildren(fragment);
   $('visibleTaskCount').textContent = `${plural(tasks.length)}${tasks.length !== monthTasks.length ? ` из ${monthTasks.length}` : ''}`;
   $('taskEmpty').hidden = tasks.length > 0;
   $('emptyAddTask').hidden = monthTasks.length > 0;
-  $('taskEmptyTitle').textContent = monthTasks.length === 0 ? 'В этом месяце пока чистый лист' : taskQuery ? 'Ничего не нашлось' : filter === 'done' ? 'Выполненные задачи появятся здесь' : filter === 'active' ? 'Все задачи месяца выполнены' : 'Задач с высоким приоритетом пока нет';
-  $('taskEmptyText').textContent = monthTasks.length === 0 ? 'Добавь первую задачу. Остальное сложится по порядку.' : taskQuery ? 'Попробуй другое слово или сбрось поиск.' : filter === 'active' ? 'Можно выдохнуть или добавить новый план.' : 'Другие задачи доступны в фильтре «Все».';
+  $('taskEmptyTitle').textContent = monthTasks.length === 0 ? 'Твой месяц начинается здесь' : taskQuery ? 'Ничего не нашлось' : filter === 'done' ? 'Выполненные задачи появятся здесь' : filter === 'active' ? 'Все задачи месяца выполнены' : 'Задач с высоким приоритетом пока нет';
+  $('taskEmptyText').textContent = monthTasks.length === 0 ? 'Запиши первое дело. Большие планы складываются из простых шагов.' : taskQuery ? 'Попробуй другое слово или сбрось поиск.' : filter === 'active' ? 'Можно выдохнуть или добавить новый план.' : 'Другие задачи доступны в фильтре «Все».';
 }
 
 function taskRow(task) {
@@ -212,7 +254,7 @@ function taskRow(task) {
   const meta = element('span', 'task-meta');
   if (task.priority !== 'normal') {
     const priority = element('span', `priority-label priority-${task.priority}`);
-    priority.append(element('span', 'priority-mark'), document.createTextNode(`${priorityNames[task.priority]} приоритет`));
+    priority.append(icon('flag'), document.createTextNode(`${priorityNames[task.priority]} приоритет`));
     meta.append(priority);
   }
   if (task.deadline) {
@@ -304,6 +346,7 @@ function showView(view) {
   currentView = view;
   $('planView').hidden = view !== 'plan';
   $('notesView').hidden = view !== 'notes';
+  $('viewLabel').textContent = view === 'notes' ? 'Мысли' : 'План на месяц';
   document.querySelectorAll('.nav-item').forEach(button => {
     const active = button.dataset.view === view;
     button.classList.toggle('is-active', active);
@@ -397,7 +440,7 @@ $('monthForm').addEventListener('submit', event => {
   $('monthDialog').close();
   renderTasks(); renderCalendar();
 });
-['addTask', 'emptyAddTask'].forEach(id => $(id).addEventListener('click', () => openTask()));
+['addTask', 'emptyAddTask', 'sidebarAddTask'].forEach(id => $(id).addEventListener('click', () => openTask()));
 $('quickTaskDetails').addEventListener('click', () => { const title = $('quickTaskTitle').value; openTask(); $('taskTitle').value = title; });
 $('quickTaskForm').addEventListener('submit', event => {
   event.preventDefault();
@@ -445,6 +488,20 @@ $('toggleTaskSearch').addEventListener('click', () => {
 });
 $('taskSearch').addEventListener('input', event => { taskQuery = event.target.value.trim().toLocaleLowerCase('ru'); renderTasks(); });
 $('clearTaskSearch').addEventListener('click', () => { taskQuery = ''; $('taskSearch').value = ''; renderTasks(); $('taskSearch').focus(); });
+function focusTaskSearch() {
+  showView('plan');
+  $('taskSearchBox').hidden = false;
+  $('toggleTaskSearch').setAttribute('aria-expanded', 'true');
+  $('taskSearch').focus();
+}
+$('globalSearch').addEventListener('click', focusTaskSearch);
+$('taskSearch').addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  event.preventDefault();
+  taskQuery = ''; $('taskSearch').value = ''; $('taskSearchBox').hidden = true;
+  $('toggleTaskSearch').setAttribute('aria-expanded', 'false');
+  renderTasks(); $('toggleTaskSearch').focus();
+});
 $('noteSearch').addEventListener('input', event => { noteQuery = event.target.value.trim().toLocaleLowerCase('ru'); renderNotes(); });
 $('quickNoteForm').addEventListener('submit', event => { event.preventDefault(); addNoteFrom($('quickNoteText')); });
 $('newNoteForm').addEventListener('submit', event => { event.preventDefault(); addNoteFrom($('newNoteText')); });
@@ -516,6 +573,9 @@ $('importData').addEventListener('change', async event => {
   }, false);
 });
 document.addEventListener('keydown', event => {
+  if (!event.defaultPrevented && (event.ctrlKey || event.metaKey) && ['k', 'л'].includes(event.key.toLowerCase()) && !document.querySelector('dialog[open]')) {
+    event.preventDefault(); focusTaskSearch(); return;
+  }
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || document.querySelector('dialog[open]')) return;
   if (event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
   if (event.key.toLowerCase() === 'n' || event.key.toLowerCase() === 'т') { event.preventDefault(); if (currentView === 'plan') openTask(); else $('newNoteText').focus(); }
@@ -545,3 +605,6 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 window.addEventListener('focus', refreshClock);
 render();
 refreshClock();
+const searchShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
+document.querySelectorAll('[data-search-shortcut]').forEach(kbd => { kbd.textContent = searchShortcut; });
+initializeOffline({ notify: showToast });
