@@ -364,6 +364,7 @@ function newTask(title, details = {}) {
 function addNoteFrom(input) {
   const text = input.value.trim();
   if (!text) { showToast('Запиши мысль перед сохранением'); input.focus(); return; }
+  if (text.length > 100000) { showToast('Мысль слишком длинная. Максимум - 100000 символов.'); input.focus(); return; }
   const timestamp = new Date().toISOString();
   if (update(next => { next.notes.push({ id: makeId(), text, createdAt: timestamp, updatedAt: timestamp }); }, 'Мысль сохранена').ok) input.value = '';
 }
@@ -402,6 +403,7 @@ $('quickTaskForm').addEventListener('submit', event => {
   event.preventDefault();
   const title = $('quickTaskTitle').value.trim();
   if (!title) { showToast('Введи название задачи'); $('quickTaskTitle').focus(); return; }
+  if (title.length > 2000) { showToast('Название слишком длинное. Максимум - 2000 символов.'); $('quickTaskTitle').focus(); return; }
   const task = newTask(title);
   if (update(next => { next.tasks.push(task); }, 'Задача добавлена').ok) {
     $('quickTaskTitle').value = '';
@@ -416,6 +418,8 @@ $('taskForm').addEventListener('submit', event => {
   const month = readMonth($('taskMonth').value);
   const deadline = $('taskDeadline').value || null;
   if (!title) return formError('taskFormError', 'Название не может состоять из пробелов.');
+  if (title.length > 2000) return formError('taskFormError', 'Название слишком длинное. Максимум - 2000 символов.');
+  if (description.length > 100000) return formError('taskFormError', 'Описание слишком длинное. Максимум - 100000 символов.');
   if (!month) return formError('taskFormError', 'Выбери корректный месяц и год.');
   if (deadline && !validDay(deadline)) return formError('taskFormError', 'Укажи существующую дату дедлайна.');
   const changes = { title, description, priority: $('taskPriority').value, ...month, deadline };
@@ -451,6 +455,7 @@ $('noteForm').addEventListener('submit', event => {
   event.preventDefault();
   const text = $('noteText').value.trim();
   if (!text) return formError('noteFormError', 'Запись не может состоять из пробелов.');
+  if (text.length > 100000) return formError('noteFormError', 'Мысль слишком длинная. Максимум - 100000 символов.');
   const result = update(next => {
     const note = next.notes.find(item => item.id === $('noteId').value);
     if (!note || snapshot(note) !== noteSnapshot) return false;
