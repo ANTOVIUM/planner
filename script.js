@@ -1,6 +1,7 @@
 import { PlannerStorage, STORAGE_KEY, BACKUP_KEY, SCHEMA_VERSION, makeId, localDay, validDay, shiftMonth, parseState, sortTasks, isOverdue, monthStats, quoteIndex } from './core.js';
 import { QUOTES } from './quotes.js';
 import { initializeOffline } from './offline.js';
+import { initializeCloud } from './cloud.js';
 
 const $ = id => document.getElementById(id);
 const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
@@ -23,6 +24,7 @@ let lastSaveError = '';
 let taskSnapshot;
 let noteSnapshot;
 let conversionNoteId;
+let cloud = { schedule() {} };
 const systemTheme = matchMedia('(prefers-color-scheme: dark)');
 const openers = new WeakMap();
 const snapshot = item => JSON.stringify(item, Object.keys(item).sort());
@@ -114,6 +116,7 @@ function update(mutator, successMessage) {
   }
   if (result.ok && successMessage) showToast(successMessage);
   if (!result.ok) showToast('Изменения не сохранены. Подробности - в сообщении выше.');
+  if (result.ok) cloud.schedule();
   return result;
 }
 
@@ -567,7 +570,7 @@ $('importData').addEventListener('change', async event => {
     state = storage.state;
     filter = state.settings.filter;
     render();
-    if (result.ok) { $('importData').value = ''; showToast('План восстановлен из файла'); }
+    if (result.ok) { $('importData').value = ''; showToast('План восстановлен из файла'); cloud.schedule(); }
     else showToast(result.message);
     return result.ok;
   }, false);
@@ -586,6 +589,7 @@ window.addEventListener('storage', event => {
   filter = state.settings.filter;
   lastSaveError = '';
   render();
+  cloud.schedule();
 });
 
 function refreshClock() {
@@ -608,3 +612,4 @@ refreshClock();
 const searchShortcut = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
 document.querySelectorAll('[data-search-shortcut]').forEach(kbd => { kbd.textContent = searchShortcut; });
 initializeOffline({ notify: showToast });
+cloud = initializeCloud({ storage:browserStorage,planner:storage,notify:showToast,openDialog,onChange:next=>{ state = next; filter = state.settings.filter; render(); } });

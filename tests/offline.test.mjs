@@ -61,7 +61,7 @@ async function status(w, type='GET_STATUS') { let reply; await w.dispatch('messa
 
 test('precache has current hashes for HTML, modules, fonts, manifest and icons', async () => {
   const w=await worker();
-  assert.equal(w.meta.PRECACHE.length,16);
+  assert.equal(w.meta.PRECACHE.length,20);
   for (const [path,integrity] of w.meta.PRECACHE) {
     const data=await readFile(new URL(path === './' ? 'index.html' : path,root));
     assert.equal(integrity,`sha256-${createHash('sha256').update(data).digest('base64')}`,path);
@@ -117,8 +117,8 @@ test('activation deletes only stale caches belonging to this app scope', async (
 test('status detects eviction; repair recovers all resources atomically', async () => {
   const w=await worker(); await w.dispatch('install');
   w.cacheData.get(w.meta.CACHE_NAME).delete('https://example.test/planner/styles.css');
-  const before=await status(w); assert.equal(before.ready,false); assert.equal(before.count,15);
-  const after=await status(w,'REPAIR_CACHE'); assert.equal(after.ready,true); assert.equal(after.count,16);
+  const before=await status(w); assert.equal(before.ready,false); assert.equal(before.count,19);
+  const after=await status(w,'REPAIR_CACHE'); assert.equal(after.ready,true); assert.equal(after.count,20);
 });
 test('failed repair reports incomplete cache without replacing good files', async () => {
   const w=await worker(); await w.dispatch('install');

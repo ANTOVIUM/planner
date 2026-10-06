@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
 const root = new URL('../', import.meta.url);
-const assets = ['index.html', 'styles.css', 'script.js', 'core.js', 'quotes.js', 'offline.js', 'manifest.webmanifest', 'favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch.png', 'fonts/inter-cyrillic.woff2', 'fonts/inter-cyrillic-ext.woff2', 'fonts/inter-latin.woff2', 'fonts/inter-latin-ext.woff2'];
+const assets = ['index.html', 'styles.css', 'script.js', 'core.js', 'quotes.js', 'offline.js', 'cloud.js', 'supabase-config.js', 'supabase-api.js', 'task-sync.js', 'manifest.webmanifest', 'favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch.png', 'fonts/inter-cyrillic.woff2', 'fonts/inter-cyrillic-ext.woff2', 'fonts/inter-latin.woff2', 'fonts/inter-latin-ext.woff2'];
 const entries = [];
 for (const path of assets) {
   const content = await readFile(new URL(path, root));

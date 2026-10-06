@@ -2,23 +2,23 @@
 const APP_BASE = new URL('./', self.location.href);
 const CACHE_PREFIX = `poryadok-shell:${APP_BASE.pathname}:`;
 // BEGIN GENERATED PRECACHE
-const VERSION = '0a3c30d89769e1fc';
+const VERSION = '4bdf35dc5aff965c';
 const PRECACHE = [
   [
     "./",
-    "sha256-FUdddIHQ0cn49WKuZWVcJjuIx5Yvy399GNmhK27AlTY="
+    "sha256-S9LxxmgoDnfgz1z8EvDFc/kparpCdD+Gd6dli910H8Q="
   ],
   [
     "./index.html",
-    "sha256-FUdddIHQ0cn49WKuZWVcJjuIx5Yvy399GNmhK27AlTY="
+    "sha256-S9LxxmgoDnfgz1z8EvDFc/kparpCdD+Gd6dli910H8Q="
   ],
   [
     "./styles.css",
-    "sha256-Xi4LwuCbZQE7tXFVunzdYIVbrIChL8YoL2tEzF3o7SA="
+    "sha256-G0eDdgwhWMu0CCFAq8JvCjhuoJhdDLmG719K3ACAuHw="
   ],
   [
     "./script.js",
-    "sha256-QNLwelfTBcei17J8Bl49S3YRjrCasra7g1oPaICgFbI="
+    "sha256-0MJJAiI+ugh7F3C5YNVSWbkoGWluHObXJp42VVjDzps="
   ],
   [
     "./core.js",
@@ -31,6 +31,22 @@ const PRECACHE = [
   [
     "./offline.js",
     "sha256-7eIxMgP06KrCT3TN3JQ/j4kW50GTOJXKRbDYvbjPm4U="
+  ],
+  [
+    "./cloud.js",
+    "sha256-2WgfJ63H4qd9gx7vFIdGzZjKEafsgP+RXmTcMdVEOlw="
+  ],
+  [
+    "./supabase-config.js",
+    "sha256-PNyd73xd+nq+YNHYWKpCVU68uqWXNmnkcZNxchD2JA0="
+  ],
+  [
+    "./supabase-api.js",
+    "sha256-vTQX5usRiMmjS4SzyAaabwn4dwpUL3McYr9oue4wQsA="
+  ],
+  [
+    "./task-sync.js",
+    "sha256-VnoiHhUlJjvhLCu3rLZITpYY7DvNWTdXG34QGMZHKeg="
   ],
   [
     "./manifest.webmanifest",
