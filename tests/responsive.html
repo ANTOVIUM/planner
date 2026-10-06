@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Порядок - проверка адаптивности</title><link rel="icon" href="../favicon.svg"><style>body{margin:0;font:14px system-ui;background:#eeeee7;color:#252a27}header{padding:18px;position:sticky;top:0;background:#fffefa;z-index:2;border-bottom:1px solid #ccc}h1{font-size:17px;margin:0 0 12px}label,button{margin-right:10px}select,button{font:inherit;padding:9px;border:1px solid #9a9e94;border-radius:5px;background:#fff}main{padding:18px}iframe{display:block;height:1100px;border:1px solid #9a9e94;margin-top:15px;background:#f6f5f0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:#fffefa;padding:15px;max-width:900px}#metrics{padding:8px 0}a{color:#284e3d}</style></head>
+<body><header><h1>Проверка реального интерфейса в заданной ширине</h1><label for="width">Ширина</label><select id="width"><option>1440</option><option>1280</option><option>1024</option><option>768</option><option>390</option><option>360</option></select><button id="measure" type="button">Проверить переполнение</button><button id="inspect" type="button">Показать сохранение localStorage</button> <a href="../">Открыть приложение</a></header><main><div id="metrics" role="status"></div><iframe id="app" src="../index.html" title="Планировщик в проверяемой ширине"></iframe><pre id="storageOutput" hidden></pre></main>
+<script type="module">
+  import { STORAGE_KEY } from '../core.js';
+  const select = document.getElementById('width');
+  const frame = document.getElementById('app');
+  const requested = new URLSearchParams(location.search).get('width');
+  if (['1440','1280','1024','768','390','360'].includes(requested)) select.value = requested;
+  function setWidth() { frame.style.width = `${select.value}px`; measure(); }
+  function measure() {
+    const doc = frame.contentDocument;
+    if (!doc?.body) return;
+    const width = doc.documentElement.clientWidth;
+    const scroll = Math.max(doc.documentElement.scrollWidth, doc.body.scrollWidth);
+    document.getElementById('metrics').textContent = `Viewport: ${width} px. Содержимое: ${scroll} px. Переполнение: ${scroll > width ? 'ЕСТЬ' : 'НЕТ'}.`;
+  }
+  select.addEventListener('change', setWidth);
+  frame.addEventListener('load', setWidth);
+  document.getElementById('measure').addEventListener('click', measure);
+  document.getElementById('inspect').addEventListener('click', () => {
+    const output = document.getElementById('storageOutput');
+    output.hidden = false;
+    try { const raw = localStorage.getItem(STORAGE_KEY); output.textContent = raw ? JSON.stringify(JSON.parse(raw), null, 2) : 'Сохранение пока отсутствует.'; }
+    catch { output.textContent = 'Не удалось прочитать сохранение.'; }
+  });
+  frame.style.width = `${select.value}px`;
+</script></body></html>
