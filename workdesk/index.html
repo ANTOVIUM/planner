@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#211d2d"><meta name="description" content="Личный кабинет заказов, финансов и рабочего времени."><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://hmdjcxpogdrveddznedx.supabase.co wss://hmdjcxpogdrveddznedx.supabase.co; font-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'">
+<title>Дело - личный кабинет</title><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css">
+<script src="vendor/supabase.js" defer></script><script type="module" src="app.js"></script>
+</head>
+<body>
+<div id="auth" class="auth-screen">
+ <section class="auth-intro"><a class="brand" href="./"><span class="brand-mark">д</span>дело<span class="brand-period">.</span></a><div><p class="eyebrow">ТВОЯ РАБОТА. ТВОИ ЦИФРЫ.</p><h1>Больше контроля.<br>Больше дохода.</h1><p class="intro-text">Заказы, деньги и рабочее время<br>в одном личном кабинете.</p><div class="auth-benefits"><span>01 <b>Видеть прибыль</b></span><span>02 <b>Держать сроки</b></span><span>03 <b>Ценить свое время</b></span></div></div><p class="auth-foot">Телефон и компьютер. Один кабинет.</p></section>
+ <section class="auth-panel"><div class="auth-card"><p class="eyebrow">ЛИЧНОЕ ПРОСТРАНСТВО</p><h2 id="auth-title">Войти в кабинет</h2><p id="auth-note" class="muted">Используй свой аккаунт. Данные доступны только тебе.</p>
+ <form id="auth-form"><label>Email<input id="email" name="email" type="email" autocomplete="username" required placeholder="mail@example.ru"></label><label id="password-label">Пароль<input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="Не менее 8 символов"></label><label id="otp-label" hidden>Код или ссылка из письма<input id="otp" name="otp" autocomplete="one-time-code" placeholder="Вставь код или ссылку подтверждения"></label><p id="auth-error" class="error" role="alert"></p><button class="btn primary full" id="auth-submit">Войти</button></form>
+ <div class="auth-links"><button id="auth-toggle" class="link">Создать аккаунт</button><button id="auth-forgot" class="link">Забыл пароль</button></div><div class="auth-divider"><span>или сначала посмотреть</span></div><button id="demo" class="btn full">Открыть пример кабинета</button><p class="small muted">В примере используются вымышленные заказы. Они не попадут в твой аккаунт.</p></div></section>
+</div>
+<div id="app" class="shell" hidden>
+ <aside class="sidebar"><a class="brand" href="./"><span class="brand-mark">д</span>дело<span class="brand-period">.</span></a><p class="sidebar-caption">УПРАВЛЕНИЕ РАБОТОЙ</p><nav id="nav" aria-label="Основные разделы"></nav><div class="sidebar-bottom"><div class="account"><span class="avatar" id="avatar">М</span><div><strong id="account-name">Мой кабинет</strong><small id="account-email"></small></div></div><button class="logout" id="logout">Выйти</button></div></aside>
+ <main><header class="topbar"><div class="crumb">Личный кабинет <span>/</span> <b id="crumb">Обзор</b></div><div class="top-tools"><span id="sync" class="sync" role="status">Подключение</span><button class="icon-btn" id="refresh" aria-label="Обновить данные" title="Обновить данные">↻</button></div></header>
+ <div id="demo-banner" class="demo-banner" hidden>Демонстрационный режим - данные вымышлены и не сохраняются.<button id="demo-exit" class="link">Войти в свой кабинет</button></div>
+ <section class="workspace"><div class="page-heading"><div><p class="eyebrow" id="page-kicker">РАБОТА ПОД КОНТРОЛЕМ</p><h1 id="page-title">Обзор</h1><p class="muted" id="page-subtitle"></p></div><div class="heading-controls"><label class="sr-only" for="period">Месяц отчета</label><input id="period" type="month" aria-label="Месяц отчета"><button class="btn primary" id="new-order"><span>+</span> Новый заказ</button></div></div><div id="content"></div></section>
+ </main>
+</div>
+<dialog id="editor"><form id="editor-form"><div class="dialog-head"><div><p class="eyebrow" id="editor-kicker">ЗАКАЗ</p><h2 id="editor-title">Новый заказ</h2></div><button type="button" class="icon-btn" data-close aria-label="Закрыть">×</button></div><div id="editor-fields" class="form-grid"></div><p id="editor-error" class="error" role="alert"></p><div class="dialog-footer"><button type="button" class="btn" data-close>Отмена</button><button type="submit" class="btn primary" id="editor-save">Сохранить</button></div></form></dialog>
+<dialog id="confirm"><div class="dialog-head"><h2>Удалить запись?</h2></div><p id="confirm-text"></p><div class="dialog-footer"><button class="btn" id="cancel-delete">Оставить</button><button class="btn danger" id="confirm-delete">Удалить</button></div></dialog>
+<div id="toast" class="toast" role="status" hidden></div>
+</body></html>
